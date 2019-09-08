@@ -6,7 +6,7 @@ make a cool webapp
 fix the algorithm/ make an algorithm 
 
 
-
+References: https://towardsdatascience.com/all-the-steps-to-build-your-first-image-classifier-with-code-cf244b015799
 
 
 
