@@ -34,7 +34,7 @@ model.add(Flatten())
 model.add(Dense(128))
 model.add(Activation("relu"))
 
-model.add(Dense(2))
+model.add(Dense(128))
 model.add(Activation("relu"))
 
 # The output layer with 13 neurons, for 13 classes
