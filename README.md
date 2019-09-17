@@ -1,13 +1,15 @@
-# Sign.Language.Detection-
-New classifier:
+# Sign-Language-Detection
 
 TODO:
 make a cool webapp
-fix the algorithm/ make an algorithm 
+design an algorithm (look into approaches such as detecting individual fingers)
 
+
+
+Finished: got a basic classifier to work
 
 References: https://towardsdatascience.com/all-the-steps-to-build-your-first-image-classifier-with-code-cf244b015799
-
+http://szeliski.org/Book/drafts/SzeliskiBook_20100903_draft.pdf
 
 
 Old classifier:
