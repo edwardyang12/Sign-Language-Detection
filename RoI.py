@@ -117,7 +117,7 @@ if __name__ == '__main__':
     img_height = 200
     img_width = 100
     n_channels = 1
-    n_rois = 3
+    n_rois = 2
     pooled_height = 6
     pooled_width = 6
 
@@ -136,7 +136,7 @@ if __name__ == '__main__':
 
     # Create batch size
     roiss_tf = tf.placeholder(tf.float32, shape=(batch_size, n_rois, 4))
-    roiss_np = np.asarray([[[0.5,0.2,0.7,0.4], [0.0,0.0,1.0,1.0],[0.6,0.8,0.8,1.0]]], dtype='float32')
+    roiss_np = np.asarray([[[0.5,0.2,0.7,0.4], [0.0,0.0,1.0,1.0],[0.6,0.0,0.0,1.0]]], dtype='float32')
     print(f"roiss_np.shape = {roiss_np.shape}")
 
     # Create layer
@@ -166,12 +166,6 @@ if __name__ == '__main__':
     print(f"second roi embedding=\n{result[0,1]}")
     plt.figure()
     plt.imshow(result[0,1].astype('uint8'))
-    plt.colorbar()
-    plt.grid(False)
-
-    print(f"third roi embedding=\n{result[0,2]}")
-    plt.figure()
-    plt.imshow(result[0,2].astype('uint8'))
     plt.colorbar()
     plt.grid(False)
     plt.show()
