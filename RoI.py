@@ -117,7 +117,7 @@ if __name__ == '__main__':
     img_height = 200
     img_width = 100
     n_channels = 1
-    n_rois = 2
+    n_rois = 3
     pooled_height = 6
     pooled_width = 6
 
