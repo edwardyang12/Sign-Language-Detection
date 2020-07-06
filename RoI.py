@@ -40,6 +40,7 @@ class ROIPoolingLayer(Layer):
                 self.pooled_width, n_channels)
 
     def call(self, x):
+
         """ Maps the input tensor of the ROI layer to its output
 
             # Parameters
