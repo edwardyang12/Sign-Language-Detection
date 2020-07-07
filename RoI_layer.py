@@ -15,10 +15,38 @@ img_height = 5
 img_width = 5
 n_channels = 1
 n_rois = 1
-pooled_height = 5
-pooled_width = 5
+pooled_height = 2
+pooled_width = 2
+
+class MyDenseLayer(tf.keras.layers.Layer):
+  def __init__(self, num_outputs):
+    super(MyDenseLayer, self).__init__()
+    self.num_outputs = num_outputs
+
+  def call(self, input):
+    print("success")
+    return input
 
 if __name__ == '__main__':
+
+    # roiss = tf.placeholder(tf.float32, shape=(1,4))
+    # feature_maps = tf.placeholder(tf.float32, shape=(1,5))
+    #
+    # feature_input = tf.keras.Input(tensor = feature_maps)
+    # roi_input = tf.keras.Input( tensor = roiss)
+    #
+    # dense = MyDenseLayer(5)(feature_maps)
+    # test = tf.keras.Model(inputs=(feature_maps), outputs=dense)
+    # input1 = np.array([[0],[0],[0],[0]])
+    # input1 = input1.reshape(1, 4)
+    #
+    # input2 = np.array([[0],[0],[0],[0],[0]])
+    # input2 = input2.reshape(1, 5)
+    # print(input2.shape)
+    #
+    # with tf.Session() as session:
+    #     result = session.run(dense, feed_dict={feature_input:input2})
+    #
 
     arg = '2frame0.jpg' #your image path
 
@@ -41,17 +69,27 @@ if __name__ == '__main__':
     roiss = tf.placeholder(tf.float32, shape=(batch_size, n_rois, 4))
     feature_maps = tf.placeholder(tf.float32, shape=values.shape)
 
-    roi = ROIPoolingLayer(pooled_height, pooled_width)([feature_maps,roiss])
+
+    feature_input = tf.keras.Input(tensor = feature_maps, name = 'feature_input')
+    roi_input = tf.keras.Input(tensor = roiss, name = 'roi_input')
+    roi = ROIPoolingLayer(pooled_height, pooled_width)([feature_input,roi_input])
+    dense1 = layers.Dense(32, activation='softmax')(roi)
 
     values = model.predict(image)
     values1 = maxpoolmodel.predict(image)
 
     region_array = np.asarray([[[0.0,0.0,1.0,1.0]]], dtype='float32')
 
-    feature_input = tf.keras.Input(shape=(feature_maps.shape))
-    roi_input = tf.keras.Input(shape=(roiss.shape))
-    roimodel = tf.keras.Model(inputs=({feature_maps:feature_input, roiss:roi_input}), outputs=roi)
-    #values2 = roi.predict(image)
+    # CANT USE PREDICT BC ROIPOOLING LAYER USES PLACEHOLDER
+
+    roimodel = tf.keras.Model(inputs=(feature_input, roi_input), outputs=dense1)
+
+    roimodel.summary()
+
+    with tf.Session() as session:
+        result = session.run(roi, feed_dict={feature_input:values, roi_input:region_array})
+        print(result.shape)
+
 
     iter = 0
     while(True):
@@ -61,6 +99,10 @@ if __name__ == '__main__':
         plt.grid(False)
         plt.figure()
         plt.imshow(values1[0,:,:,iter].astype('uint8'))
+        plt.colorbar()
+        plt.grid(False)
+        plt.figure()
+        plt.imshow(result[0,0,:,:,iter].astype('uint8'))
         plt.colorbar()
         plt.grid(False)
         plt.show()
