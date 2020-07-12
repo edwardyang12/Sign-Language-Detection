@@ -73,16 +73,18 @@ if __name__ == '__main__':
     feature_input = tf.keras.Input(tensor = feature_maps, name = 'feature_input')
     roi_input = tf.keras.Input(tensor = roiss, name = 'roi_input')
     roi = ROIPoolingLayer(pooled_height, pooled_width)([feature_input,roi_input])
-    dense1 = layers.Dense(32, activation='softmax')(roi)
+    fc1 = layers.Flatten()(roi)
+    dense1 = layers.Dense(32, activation='softmax')(fc1)
+    dense2 = layers.Dense(32, activation='sigmoid')(fc1) # later change this into bounding box regression
 
     values = model.predict(image)
     values1 = maxpoolmodel.predict(image)
 
     region_array = np.asarray([[[0.0,0.0,1.0,1.0]]], dtype='float32')
 
-    # CANT USE PREDICT BC ROIPOOLING LAYER USES PLACEHOLDER
+    # CANT USE PREDICT FUNCTION BC ROIPOOLING LAYER USES PLACEHOLDER
 
-    roimodel = tf.keras.Model(inputs=(feature_input, roi_input), outputs=dense1)
+    roimodel = tf.keras.Model(inputs=(feature_input, roi_input), outputs=(dense1, dense2))
 
     roimodel.summary()
 
