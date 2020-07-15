@@ -15,24 +15,21 @@ pooled_height = 2
 pooled_width = 2
 
 class ROIModel(tf.keras.Model):
-    def __init__(self, roiss, feature_maps):
+    def __init__(self):
         super(ROIModel, self).__init__()
         self.CNN = applications.MobileNetV2(input_shape=(160, 160, 3), include_top=False, weights='imagenet')
-        self.feature_input = tf.keras.Input(tensor = feature_maps, name = 'feature_input')
-        self.roi_input = tf.keras.Input(tensor = roiss, name = 'roi_input')
-        self.roi = ROIPoolingLayer(pooled_height, pooled_width)([self.feature_input,self.roi_input])
+        self.roi = ROIPoolingLayer(pooled_height, pooled_width)
         self.fc1 = layers.Flatten()
-        self.dense1 = layers.Dense(32, activation='softmax', name = 'class_output')
-        self.dense2 = layers.Dense(32, activation='sigmoid', name = 'bounding_box') # later change this into bounding box regression
+        self.dense1 = layers.Dense(5*5*1280, activation='softmax', name = "class_output")
+        self.dense2 = layers.Dense(1, activation='sigmoid', name = "bounding_box") # later change this into bounding box regression
 
     def call(self, image):
-
-        features = self.CNN.predict()
+        image = tf.dtypes.cast(image, tf.float32)
+        features = self.CNN(image)
         region_array = np.asarray([[[0.0,0.0,1.0,1.0]]], dtype='float32')
-        result = sess.run(self.roi, feed_dict={self.feature_input:features, self.roi_input:region_array})
+        result = self.roi([features,region_array])
         flatten = self.fc1(result)
-        return self.dense1(flatten), self.dense2(flatten)
-
+        return [self.dense1(flatten), self.dense2(flatten)]
 
 if __name__ == '__main__':
     arg = '2frame0.jpg' #your image path
@@ -40,39 +37,30 @@ if __name__ == '__main__':
     image = prepare(arg)
 
     base_model = applications.MobileNetV2(input_shape=(160, 160, 3), include_top=False, weights='imagenet')
-
     #base_model.summary()
 
-    image = tf.convert_to_tensor(image)
-    print(type(image))
-    # image = image.eval()
-    # print(type(image))
-    # print(image)
 
-    values = base_model.predict(x = image)
-    # values = base_model.evaluate(x=data_image, y=values ) # just to get shape
+    values = base_model.predict(image)
 
-    roiss = tf.placeholder(tf.float32, shape=(batch_size, n_rois, 4))
-    feature_maps = tf.placeholder(tf.float32, shape=values.shape)
-    model = ROIModel(roiss, feature_maps)
+    model = ROIModel()
 
     model.compile(
         optimizer = optimizers.RMSprop(1e-3),
         loss={
-        "bounding_box": losses.MeanSquaredError(),
-        "class_output": losses.CategoricalCrossentropy(),
+            "output_1": losses.MeanSquaredError(),
+            "output_2": losses.CategoricalCrossentropy(),
         },
         metrics={
-        "bounding_box": [
+        "output_1": [
             metrics.MeanAbsolutePercentageError(),
             metrics.MeanAbsoluteError(),
         ],
-        "class_output": [metrics.CategoricalAccuracy()],
+        "output_2": [metrics.CategoricalAccuracy()],
     },
     )
 
     model.build(image.shape)
     model.summary()
-    #model.evaluate(x = data_image)
+    print(model.predict(x=image))
 
     print("sucess")

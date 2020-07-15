@@ -28,36 +28,25 @@ if __name__ == '__main__':
 
     values = model.predict(image)
 
-    test_image = values
-
-    feature_maps_tf = tf.placeholder(tf.float32, shape=test_image.shape)
-
     # Create batch size
-    roiss_tf = tf.placeholder(tf.float32, shape=(batch_size, n_rois, 4))
     roiss_np = np.asarray([[[0.0,0.0,1.0,1.0]]], dtype='float32')
     print(f"roiss_np.shape = {roiss_np.shape}")
 
     roi_layer = ROIPoolingLayer(pooled_height, pooled_width)
-    pooled_features = roi_layer([feature_maps_tf, roiss_tf])
-    print(f"output shape of layer call = {pooled_features.shape}")
-    # Run tensorflow session
-    with tf.Session() as session:
-        result = session.run(pooled_features,
-                             feed_dict={feature_maps_tf:test_image,
-                                        roiss_tf:roiss_np})
+    result = roi_layer([values,roiss_np])
 
     print(f"result.shape = {result.shape}")
     iter = 0
     while(True):
         #print(test_image[0])
         plt.figure()
-        plt.imshow(test_image[0,:,:,iter])
+        plt.imshow(values[0,:,:,iter])
         plt.colorbar()
         plt.grid(False)
 
         print(f"first  roi embedding=\n{result[0,0]}")
         plt.figure()
-        plt.imshow(result[0,0,:,:,iter].astype('uint8'))
+        plt.imshow(result[0,0,:,:,iter].eval().astype('uint8'))
         plt.colorbar()
         plt.grid(False)
         plt.show()

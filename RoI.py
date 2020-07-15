@@ -6,6 +6,7 @@ from tensorflow.keras import datasets
 import numpy as np
 import matplotlib.pyplot as plt
 
+sess = tf.InteractiveSession()
 class ROIPoolingLayer(Layer):
     """ Implements Region Of Interest Max Pooling
         for channel-first images and relative bounding box coordinates
@@ -40,7 +41,7 @@ class ROIPoolingLayer(Layer):
                 self.pooled_width, n_channels)
 
     def call(self, x):
-
+        x[0] = tf.dtypes.cast(x[0], tf.float32)
         """ Maps the input tensor of the ROI layer to its output
 
             # Parameters
@@ -88,7 +89,9 @@ class ROIPoolingLayer(Layer):
         h_end   = tf.cast(feature_map_height * roi[2], 'int32')
         w_end   = tf.cast(feature_map_width  * roi[3], 'int32')
 
+
         region = feature_map[h_start:h_end, w_start:w_end, :]
+
 
         # Divide the region into non overlapping areas
         region_height = h_end - h_start
@@ -142,17 +145,18 @@ if __name__ == '__main__':
 
     # Create layer
     roi_layer = ROIPoolingLayer(pooled_height, pooled_width)
-    pooled_features = roi_layer([feature_maps_tf, roiss_tf])
-    print(f"output shape of layer call = {pooled_features.shape}")
-    # Run tensorflow session
-    with tf.Session() as session:
-        result = session.run(pooled_features,
-                             feed_dict={feature_maps_tf:one_image,
-                                        roiss_tf:roiss_np})
-
+    result = roi_layer([one_image,roiss_np])
+    # pooled_features = roi_layer([feature_maps_tf, roiss_tf])
+    # print(f"output shape of layer call = {pooled_features.shape}")
+    # # Run tensorflow session
+    # with tf.Session() as session:
+    #     result = session.run(pooled_features,
+    #                          feed_dict={feature_maps_tf:one_image,
+    #                                     roiss_tf:roiss_np})
+    #
     print(f"result.shape = {result.shape}")
 
-    print(one_image[0])
+    #print(one_image[0])
     plt.figure()
     plt.imshow(one_image[0])
     plt.colorbar()
@@ -160,13 +164,13 @@ if __name__ == '__main__':
 
     print(f"first  roi embedding=\n{result[0,0]}")
     plt.figure()
-    plt.imshow(result[0,0].astype('uint8'))
+    plt.imshow(result[0,0].eval().astype('uint8'))
     plt.colorbar()
     plt.grid(False)
 
     print(f"second roi embedding=\n{result[0,1]}")
     plt.figure()
-    plt.imshow(result[0,1].astype('uint8'))
+    plt.imshow(result[0,1].eval().astype('uint8'))
     plt.colorbar()
     plt.grid(False)
     plt.show()
