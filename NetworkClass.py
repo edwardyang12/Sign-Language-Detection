@@ -1,6 +1,7 @@
 from RoI import ROIPoolingLayer
 import numpy as np
 import tensorflow.compat.v1 as tf
+import matplotlib.pyplot as plt
 tf.disable_v2_behavior()
 from tensorflow.keras import datasets, models, applications, layers, losses, optimizers, metrics
 from feature_extraction import prepare
@@ -24,7 +25,8 @@ class ROIModel(tf.keras.Model):
         region_array = np.asarray([[[0.0,0.0,1.0,1.0]]], dtype='float32')
         result = self.roi([features,region_array])
         flatten = self.fc1(result)
-        return [self.dense1(flatten), self.dense2(flatten)]
+        output = [self.dense1(flatten), self.dense2(flatten)]
+        return output
 
 if __name__ == '__main__':
     # arg = '2frame0.jpg' #your image path
@@ -40,25 +42,41 @@ if __name__ == '__main__':
     model.compile(
         optimizer = optimizers.RMSprop(1e-3),
         loss={
-            "output_1": losses.MeanSquaredError(),
-            #"output_2": losses.CategoricalCrossentropy(),
+            "output_2": losses.MeanSquaredError(),
+            "output_1": losses.SparseCategoricalCrossentropy(),
         },
         metrics={
         "output_1": [
-            metrics.MeanAbsolutePercentageError(),
+            'accuracy'
+            #metrics.CategoricalAccuracy(),
         ],
-        #"output_2": [metrics.CategoricalAccuracy()],
+        "output_2": [metrics.MeanSquaredError()],
     },
     )
 
-    print(train_images.shape)
     # for bounding and classifier
-    history = model.fit(train_images, [train_labels, temp_bb_train], epochs=30,
+    history = model.fit(x=train_images, y=(train_labels, temp_bb_train), epochs=100, batch_size = 1, verbose =2,
                         validation_data=(test_images, [test_labels,temp_bb_test]))
 
-    # model.build([train_images[0].shape])
     model.summary()
-    # test = train_images[0]/255.0
+    plt.plot(history.history['output_1_acc'], label='Classification')
+    plt.plot(history.history['output_2_mean_squared_error'], label ='Bounding Box Error')
+    plt.plot(history.history['val_output_1_acc'], label = 'val_accuracy')
+    plt.plot(history.history['val_output_2_mean_squared_error'], label = 'val_bounding_box')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.ylim([0.5, 1])
+    plt.legend(loc='lower right')
+    plt.show()
+
+    test = train_images[1]
+    test = test.reshape(1, 32, 32, 3)
+    print(model.predict(x=test))
+    print(train_labels[1])
+
+    # model.build([train_images[0].shape])
+    # model.summary()
+    # test = train_images[1]
     # test = test.reshape(1, 32, 32, 3)
     # print(test.shape)
     # print(model.predict(x=test))
