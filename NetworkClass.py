@@ -5,22 +5,17 @@ tf.disable_v2_behavior()
 from tensorflow.keras import datasets, models, applications, layers, losses, optimizers, metrics
 from feature_extraction import prepare
 
-sess = tf.InteractiveSession()
-batch_size = 1
-img_height = 5
-img_width = 5
-n_channels = 1
-n_rois = 1
-pooled_height = 2
-pooled_width = 2
+pooled_height = 1
+pooled_width = 1
 
 class ROIModel(tf.keras.Model):
-    def __init__(self):
+    def __init__(self, input_shape):
         super(ROIModel, self).__init__()
-        self.CNN = applications.MobileNetV2(input_shape=(160, 160, 3), include_top=False, weights='imagenet')
+        self.CNN = applications.MobileNetV2(input_shape=input_shape[1:], include_top=False, weights='imagenet')
+        self.CNN.trainable = False
         self.roi = ROIPoolingLayer(pooled_height, pooled_width)
         self.fc1 = layers.Flatten()
-        self.dense1 = layers.Dense(5*5*1280, activation='softmax', name = "class_output")
+        self.dense1 = layers.Dense(10, activation='softmax', name = "class_output") # number should be number of classes
         self.dense2 = layers.Dense(1, activation='sigmoid', name = "bounding_box") # later change this into bounding box regression
 
     def call(self, image):
@@ -32,35 +27,40 @@ class ROIModel(tf.keras.Model):
         return [self.dense1(flatten), self.dense2(flatten)]
 
 if __name__ == '__main__':
-    arg = '2frame0.jpg' #your image path
+    # arg = '2frame0.jpg' #your image path
+    (train_images, train_labels), (test_images, test_labels) = datasets.cifar10.load_data()
+    train_images, test_images = train_images / 255.0, test_images / 255.0
+    #image = prepare(arg)
 
-    image = prepare(arg)
+    temp_bb_train = np.ones(train_labels.shape[0])
+    temp_bb_test = np.ones(test_labels.shape[0])
 
-    base_model = applications.MobileNetV2(input_shape=(160, 160, 3), include_top=False, weights='imagenet')
-    #base_model.summary()
-
-
-    values = base_model.predict(image)
-
-    model = ROIModel()
+    model = ROIModel(train_images.shape)
 
     model.compile(
         optimizer = optimizers.RMSprop(1e-3),
         loss={
             "output_1": losses.MeanSquaredError(),
-            "output_2": losses.CategoricalCrossentropy(),
+            #"output_2": losses.CategoricalCrossentropy(),
         },
         metrics={
         "output_1": [
             metrics.MeanAbsolutePercentageError(),
-            metrics.MeanAbsoluteError(),
         ],
-        "output_2": [metrics.CategoricalAccuracy()],
+        #"output_2": [metrics.CategoricalAccuracy()],
     },
     )
 
-    model.build(image.shape)
+    print(train_images.shape)
+    # for bounding and classifier
+    history = model.fit(train_images, [train_labels, temp_bb_train], epochs=30,
+                        validation_data=(test_images, [test_labels,temp_bb_test]))
+
+    # model.build([train_images[0].shape])
     model.summary()
-    print(model.predict(x=image))
+    # test = train_images[0]/255.0
+    # test = test.reshape(1, 32, 32, 3)
+    # print(test.shape)
+    # print(model.predict(x=test))
 
     print("sucess")
