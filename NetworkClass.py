@@ -55,7 +55,7 @@ if __name__ == '__main__':
     )
 
     # for bounding and classifier
-    history = model.fit(x=train_images, y=(train_labels, temp_bb_train), epochs=100, batch_size = 1, verbose =2,
+    history = model.fit(x=train_images, y=(train_labels, temp_bb_train), epochs=2, batch_size = 1, verbose =1,
                         validation_data=(test_images, [test_labels,temp_bb_test]))
 
     model.summary()
