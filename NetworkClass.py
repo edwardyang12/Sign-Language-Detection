@@ -1,5 +1,6 @@
 from RoI import ROIPoolingLayer
 import numpy as np
+os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 import tensorflow.compat.v1 as tf
 import matplotlib.pyplot as plt
 tf.disable_v2_behavior()
