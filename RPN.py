@@ -610,6 +610,11 @@ if __name__ == '__main__':
        Rpn = RPN(image_pl=image_pl)             #weights=weights
        #Session
        with tf.Session() as sess:
+
+          # TO DO CHANGE THESE TO BE IN THE NETWORK ITSELF THESE TWO LINES LOAD WEIGHTS
+          saver = tf.train.import_meta_graph("Saved Weights-750.meta")
+          saver.restore(sess,tf.train.latest_checkpoint('./'))
+          
           #Adding
            writer = tf.summary.FileWriter("Test_Graph", sess.graph)
           #Adding
