@@ -571,11 +571,11 @@ class RPN:
         loss_reg_norm = self.prediction_dict['rpn_reg_loss']/N_cls
         loss_cls_norm = self.prediction_dict['rpn_cls_loss']*Lambda/N_reg
 
-        net_loss = tf.add(loss_cls_norm,loss_reg_norm)
+        self.net_loss = tf.add(loss_cls_norm,loss_reg_norm)
 
         Optimizer = tf.contrib.opt.AdamWOptimizer(weight_decay=0.005, learning_rate=0.001,
                                                   name='Adam_W_Optimizer')
-        self.Update_Params = Optimizer.minimize(net_loss)
+        self.Update_Params = Optimizer.minimize(self.net_loss)
 
     def Load_pretrained_wts(self, weight_file):
 
@@ -652,8 +652,9 @@ if __name__ == '__main__':
                gt_box_np = np.array(bbox_list[i])
                gt_box_np = np.reshape(gt_box_np, [-1,4])
 
-               sess.run(Rpn.Update_Params, feed_dict = {image_pl: image, gt_boxes_pl: gt_box_np})
+               _, net_loss = sess.run([Rpn.Update_Params, Rpn.net_loss], feed_dict = {image_pl: image, gt_boxes_pl: gt_box_np})
 
+               print(net_loss)
                if i % 500 == 0:
                    Saver.save(sess, 'RPN_weights', global_step=i)
     Test("2007_000027.jpg")
