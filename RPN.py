@@ -3,10 +3,10 @@ import tensorflow as tf
 import numpy as np
 import cv2
 #Importing self-defined functions
-from Utils import Encode, Decode, Filter, Clip_Boxes, Change_Order, Smooth_L1_Loss, BBox_Overlap
-from Anchors import Generate_Anchors
-from Draw_bboxes import Draw_bboxes
-from Dataset import Dataset
+from RPN_Faster_R_CNN.Utils import Encode, Decode, Filter, Clip_Boxes, Change_Order, Smooth_L1_Loss, BBox_Overlap
+from RPN_Faster_R_CNN.Anchors import Generate_Anchors
+from RPN_Faster_R_CNN.Draw_bboxes import Draw_bboxes
+from RPN_Faster_R_CNN.Dataset import Dataset
 '''
 RPN performs the following tasks -
 Input  - Image
@@ -571,11 +571,11 @@ class RPN:
         loss_reg_norm = self.prediction_dict['rpn_reg_loss']/N_cls
         loss_cls_norm = self.prediction_dict['rpn_cls_loss']*Lambda/N_reg
 
-        self.net_loss = tf.add(loss_cls_norm,loss_reg_norm)
+        net_loss = tf.add(loss_cls_norm,loss_reg_norm)
 
         Optimizer = tf.contrib.opt.AdamWOptimizer(weight_decay=0.005, learning_rate=0.001,
                                                   name='Adam_W_Optimizer')
-        self.Update_Params = Optimizer.minimize(self.net_loss)
+        self.Update_Params = Optimizer.minimize(net_loss)
 
     def Load_pretrained_wts(self, weight_file):
 
@@ -583,6 +583,11 @@ class RPN:
         for i, k in enumerate(keys):
             if i<26:
                 self.assign_wts = self.parameters[i].assign(weight_file[k])
+
+    def Load_trained_wts(self, weight_file = "RPN_Faster_R_CNN/Weights-100.meta"):
+        with tf.Session() as sess:
+            saver = tf.train.import_meta_graph(weight_file)
+            saver.restore(sess,tf.train.latest_checkpoint('RPN_Faster_R_CNN/'))
 
 if __name__ == '__main__':
 
@@ -610,11 +615,6 @@ if __name__ == '__main__':
        Rpn = RPN(image_pl=image_pl)             #weights=weights
        #Session
        with tf.Session() as sess:
-
-          # TO DO CHANGE THESE TO BE IN THE NETWORK ITSELF THESE TWO LINES LOAD WEIGHTS
-          saver = tf.train.import_meta_graph("Saved Weights-750.meta")
-          saver.restore(sess,tf.train.latest_checkpoint('./'))
-          
           #Adding
            writer = tf.summary.FileWriter("Test_Graph", sess.graph)
           #Adding
@@ -652,12 +652,11 @@ if __name__ == '__main__':
                gt_box_np = np.array(bbox_list[i])
                gt_box_np = np.reshape(gt_box_np, [-1,4])
 
-               _, net_loss = sess.run([Rpn.Update_Params, Rpn.net_loss], feed_dict = {image_pl: image, gt_boxes_pl: gt_box_np})
+               sess.run(Rpn.Update_Params, feed_dict = {image_pl: image, gt_boxes_pl: gt_box_np})
 
-               print(net_loss)
                if i % 500 == 0:
                    Saver.save(sess, 'RPN_weights', global_step=i)
-    Test("2007_000027.jpg")
+    Test("RPN_Faster_R_CNN/2007_000027.jpg")
        #Main function to be declared
        #Train and test function have to be invoked for training on required dataset
        #Location has to be set properly to pick up images and labels

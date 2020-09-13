@@ -1,11 +1,13 @@
 from RoI import ROIPoolingLayer
 import numpy as np
+import os
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 import tensorflow.compat.v1 as tf
 import matplotlib.pyplot as plt
 tf.disable_v2_behavior()
 from tensorflow.keras import datasets, models, applications, layers, losses, optimizers, metrics
 from feature_extraction import prepare
+from RPN import RPN
 
 pooled_height = 1
 pooled_width = 1
