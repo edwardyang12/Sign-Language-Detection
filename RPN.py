@@ -53,11 +53,11 @@ class RPN:
             kernel = tf.Variable(tf.truncated_normal([3, 3, 3, 64], dtype=tf.float32,
                                                      stddev=1e-1), name='weights', trainable=True)
             conv = tf.nn.conv2d(image, kernel, [1, 1, 1, 1], padding='SAME')
-            biases = tf.Variable(tf.constant(0.0, shape=[64], dtype=tf.float32),
+            self.biases = tf.Variable(tf.constant(0.0, shape=[64], dtype=tf.float32),
                                  trainable=True, name='biases')
-            out = tf.nn.bias_add(conv, biases)
+            out = tf.nn.bias_add(conv, self.biases)
             self.conv1_1 = tf.nn.relu(out, name=scope)
-            self.parameters += [kernel, biases]
+            self.parameters += [kernel, self.biases]
 
         # conv1_2
         with tf.name_scope('conv1_2') as scope:
@@ -583,11 +583,31 @@ class RPN:
         for i, k in enumerate(keys):
             if i<26:
                 self.assign_wts = self.parameters[i].assign(weight_file[k])
+                self.parameters[i] = self.assign_wts
 
-    def Load_trained_wts(self, weight_file = "RPN_Faster_R_CNN/Weights-100.meta"):
-        with tf.Session() as sess:
-            saver = tf.train.import_meta_graph(weight_file)
-            saver.restore(sess,tf.train.latest_checkpoint('RPN_Faster_R_CNN/'))
+    def Load_trained_wts(self, weight_file = "RPN_Faster_R_CNN/Weights.npz"):
+
+        # load VGG16 weights
+        weight_file1 = np.load('RPN_Faster_R_CNN/vgg16_weights.npz')
+        keys = sorted(weight_file1.keys())
+        for i, k in enumerate(keys):
+            if i<26:
+                self.assign_wts = self.parameters[i].assign(weight_file1[k])
+                self.parameters[i] = self.assign_wts
+
+        # for matching the rpn layers cls,f_vector,reg
+        weight_file = np.load(weight_file)
+        keys = sorted(weight_file.keys())
+        for i, k in enumerate(keys):
+            if i==22:
+                self.assign_wts = self.parameters[28].assign(weight_file[k])
+                self.parameters[28] = self.assign_wts
+            elif i==23:
+                self.assign_wts = self.parameters[26].assign(weight_file[k])
+                self.parameters[26] = self.assign_wts
+            elif i==24:
+                self.assign_wts = self.parameters[27].assign(weight_file[k])
+                self.parameters[27] = self.assign_wts
 
 if __name__ == '__main__':
 
@@ -621,6 +641,7 @@ if __name__ == '__main__':
            sess.run(tf.global_variables_initializer())
            proposals, scores = sess.run([Rpn.prediction_dict['proposals'], Rpn.prediction_dict['scores']],
                                         feed_dict = {image_pl: image})
+
            Draw_bboxes(proposals, image)
            writer.close()
 
