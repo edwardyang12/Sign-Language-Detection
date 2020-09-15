@@ -583,7 +583,6 @@ class RPN:
         for i, k in enumerate(keys):
             if i<26:
                 self.assign_wts = self.parameters[i].assign(weight_file[k])
-                self.parameters[i] = self.assign_wts
 
     def Load_trained_wts(self, weight_file = "RPN_Faster_R_CNN/Weights.npz"):
 
@@ -592,22 +591,18 @@ class RPN:
         keys = sorted(weight_file1.keys())
         for i, k in enumerate(keys):
             if i<26:
-                self.assign_wts = self.parameters[i].assign(weight_file1[k])
-                self.parameters[i] = self.assign_wts
+                self.parameters[i] = tf.Variable(weight_file1[k])
 
         # for matching the rpn layers cls,f_vector,reg
         weight_file = np.load(weight_file)
         keys = sorted(weight_file.keys())
         for i, k in enumerate(keys):
             if i==22:
-                self.assign_wts = self.parameters[28].assign(weight_file[k])
-                self.parameters[28] = self.assign_wts
+                self.parameters[28] = tf.Variable(weight_file1[k])
             elif i==23:
-                self.assign_wts = self.parameters[26].assign(weight_file[k])
-                self.parameters[26] = self.assign_wts
+                self.parameters[26] = tf.Variable(weight_file1[k])
             elif i==24:
-                self.assign_wts = self.parameters[27].assign(weight_file[k])
-                self.parameters[27] = self.assign_wts
+                self.parameters[27] = tf.Variable(weight_file1[k])
 
 if __name__ == '__main__':
 
@@ -666,7 +661,6 @@ if __name__ == '__main__':
        #Session
        with tf.Session() as sess:
            sess.run(tf.global_variables_initializer())
-           sess.run(Rpn.assign_wts)
            #Lopping through entire training data and updating parameters
            for i in range(15000):
                image = image_list[i]
