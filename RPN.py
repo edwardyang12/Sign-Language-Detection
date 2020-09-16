@@ -584,25 +584,30 @@ class RPN:
             if i<26:
                 self.assign_wts = self.parameters[i].assign(weight_file[k])
 
-    def Load_trained_wts(self, weight_file = "RPN_Faster_R_CNN/Weights.npz"):
+    def Load_trained_wts(self, weight_file = "Weights750.npz"):
 
         # load VGG16 weights
-        weight_file1 = np.load('RPN_Faster_R_CNN/vgg16_weights.npz')
-        keys = sorted(weight_file1.keys())
-        for i, k in enumerate(keys):
-            if i<26:
-                self.parameters[i] = tf.Variable(weight_file1[k])
+        # weight_file1 = np.load('RPN_Faster_R_CNN/vgg16_weights.npz')
+        # keys = sorted(weight_file1.keys())
+        # for i, k in enumerate(keys):
+        #     print(i,k,weight_file1[k])
+        #     if i<26:
+        #         self.parameters[i] = tf.Variable(weight_file1[k])
 
         # for matching the rpn layers cls,f_vector,reg
         weight_file = np.load(weight_file)
         keys = sorted(weight_file.keys())
         for i, k in enumerate(keys):
-            if i==22:
-                self.parameters[28] = tf.Variable(weight_file1[k])
-            elif i==23:
-                self.parameters[26] = tf.Variable(weight_file1[k])
-            elif i==24:
-                self.parameters[27] = tf.Variable(weight_file1[k])
+            if i==26:
+                self.parameters[28].assign(weight_file[k])
+            elif i==27:
+                self.parameters[26].assign(weight_file[k])
+            elif i==28:
+                self.parameters[27].assign(weight_file[k])
+            elif(i%2==0): #weights then biases
+                self.parameters[i+1].assign(weight_file[k])
+            else:
+                self.parameters[i-1].assign(weight_file[k])
 
 if __name__ == '__main__':
 
