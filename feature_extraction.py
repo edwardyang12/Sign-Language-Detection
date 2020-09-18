@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from tensorflow.keras import datasets, models, applications
+from tensorflow.keras import datasets, models, applications, layers
+import tensorflow as tf
 import cv2
 
 # feature extraction which will be used to construct feature maps
@@ -12,6 +13,65 @@ def prepare(file):
     #cv2.imshow("test",new_array)
     return new_array.reshape(1, IMG_SIZE, IMG_SIZE, 3)
 
+# classes is number of classes
+class VGG(tf.keras.Model):
+    def __init__(self,input_tensor):
+        super(VGG, self).__init__()
+        
+        self.conv1_1 = layers.Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv1')(img_input)
+        self.conv1_2 = layers.Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv2')
+        self.max1 = layers.MaxPooling2D((2, 2), strides=(2, 2), name='block1_pool')
+
+        # Block 2
+        self.conv2_1 = layers.Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv1')
+        self.conv2_2 = layers.Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv2')
+        self.max2 = layers.MaxPooling2D((2, 2), strides=(2, 2), name='block2_pool')
+
+        # Block 3
+        self.conv3_1 = layers.Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv1')
+        self.conv3_2 = layers.Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv2')
+        self.conv3_3 = layers.Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv3')
+        self.max3 = layers.MaxPooling2D((2, 2), strides=(2, 2), name='block3_pool')(x)
+
+        # Block 4
+        self.conv4_1 = layers.Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv1')
+        self.conv4_2 = layers.Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv2')
+        self.conv4_3 = layers.Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv3')
+        self.max4 = layers.MaxPooling2D((2, 2), strides=(2, 2), name='block4_pool')
+
+        # Block 5
+        self.conv5_1 = layers.Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv1')
+        self.conv5_2 = layers.Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv2')
+        self.conv5_3 = layers.Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv3')
+        self.max5 = MaxPooling2D((2, 2), strides=(2, 2), name='block5_pool')(x)
+
+        # Classification
+        self.dense1 = layers.Dense(4096, activation='relu', name="dense1")
+        self.dense2 = layers.Dense(4096, activation='relu', name="dense2")
+        self.dense3 = layers.Dense(1000, activation='relu', name="dense3")
+        self.dense4 = layers.Dense(classes, activation='relu', name="softmax")
+        
+
+    def call(self,image):
+        first = self.conv1_1(image)
+        x = self.conv1_2(first)
+        x = self.max1(x)
+        x = self.conv2_1(x)
+        x = self.conv2_2(x)
+        x = self.max2(x)
+        x = self.conv3_1(x)
+        x = self.conv3_2(x)
+        x = self.conv3_3(x)
+        x = self.max3(x)
+        x = self.conv4_1(x)
+        x = self.conv4_2(x)
+        x = self.conv4_3(x)
+        x = self.max4(x)
+        x = self.conv5_1(x)
+        x = self.conv5_2(x)
+        features = self.conv5_3(x)
+        return features
+        
 
 if __name__ == '__main__':
 
