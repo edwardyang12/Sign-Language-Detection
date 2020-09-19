@@ -6,25 +6,26 @@ import tensorflow.compat.v1 as tf
 import matplotlib.pyplot as plt
 tf.disable_v2_behavior()
 from tensorflow.keras import datasets, models, applications, layers, losses, optimizers, metrics
-from feature_extraction import prepare
-from RPN import RPN
+from feature_extraction import prepare, VGG
+#from RPN import RPN
 
 pooled_height = 1
 pooled_width = 1
 
 class ROIModel(tf.keras.Model):
-    def __init__(self, input_shape):
+    def __init__(self,labels):
         super(ROIModel, self).__init__()
-        self.CNN = applications.MobileNetV2(input_shape=input_shape[1:], include_top=False, weights='imagenet')
-        self.CNN.trainable = False
+        # self.CNN = applications.MobileNetV2(input_shape=input_shape[1:], include_top=False, weights='imagenet')
+        # self.CNN.trainable = False
+        self.VGG = VGG(labels)
         self.roi = ROIPoolingLayer(pooled_height, pooled_width)
         self.fc1 = layers.Flatten()
         self.dense1 = layers.Dense(10, activation='softmax', name = "class_output") # number should be number of classes
         self.dense2 = layers.Dense(1, activation='sigmoid', name = "bounding_box") # later change this into bounding box regression
 
     def call(self, image):
-        image = tf.dtypes.cast(image, tf.float32)
-        features = self.CNN(image)
+        # image = tf.dtypes.cast(image, tf.float32)
+        features = self.VGG(image)
         region_array = np.asarray([[[0.0,0.0,1.0,1.0]]], dtype='float32')
         result = self.roi([features,region_array])
         flatten = self.fc1(result)
@@ -40,7 +41,7 @@ if __name__ == '__main__':
     temp_bb_train = np.ones(train_labels.shape[0])
     temp_bb_test = np.ones(test_labels.shape[0])
 
-    model = ROIModel(train_images.shape)
+    model = ROIModel(10)
 
     model.compile(
         optimizer = optimizers.RMSprop(1e-3),
