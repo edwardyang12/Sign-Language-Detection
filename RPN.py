@@ -1,12 +1,32 @@
-from tensorflow.keras import datasets, models, applications, layers, losses, optimizers, metrics
+from tensorflow.keras import datasets, layers, losses, optimizers, metrics, Input, Model
+import tensorflow as tf
+from feature_extraction import VGG
 
 class RPN(tf.keras.Model):
-    def __init__(self,base_layers,num_anchors):
+    def __init__(self, num_anchors):
         super(RPN,self).__init__()
-        self.x = Convolution2D(512, (3, 3), padding='same', activation='relu', kernel_initializer='normal', name='rpn_conv1')
-        self.x_class = Convolution2D(num_anchors, (1, 1), activation='sigmoid', kernel_initializer='uniform', name='rpn_out_class')
-        self.x_regr = Convolution2D(num_anchors * 4, (1, 1), activation='linear', kernel_initializer='zero', name='rpn_out_regress')
+        self.x = layers.Conv2D(512, (3, 3), padding='same', activation='relu', kernel_initializer='normal', name='rpn_conv1')
+        self.x_class = layers.Conv2D(num_anchors, (1, 1), activation='sigmoid', kernel_initializer='uniform', name='rpn_out_class')
+        self.x_regr = layers.Conv2D(num_anchors * 4, (1, 1), activation='linear', kernel_initializer='zero', name='rpn_out_regress')
 
     def call(self, features):
+        x = self.x(features)
+        classes = self.x_class(x)
+        regression = self.x_regr(x)
+        return [classes, regression, features]
 
-        return [x_class, x_regr, base_layers]
+if __name__ == '__main__':
+    (train_images, train_labels), (test_images, test_labels) = datasets.cifar10.load_data()
+    train_images, test_images = train_images / 255.0, test_images / 255.0
+    input_shape_img = (None,None,3)
+
+    img_input = Input(shape=input_shape_img)
+    anchor_box_scales = [128, 256, 512]
+    anchor_box_ratios = [[1, 1], [1, 2], [2, 1]]
+    num_anchors = len(anchor_box_scales) * len(anchor_box_ratios)
+
+    features = VGG(10)(img_input)
+    rpn = RPN(num_anchors)(features)
+
+    model = Model(inputs = img_input, outputs= rpn)
+    model.compile(optimizer='sgd', loss='mse')
