@@ -7,17 +7,19 @@ import matplotlib.pyplot as plt
 tf.disable_v2_behavior()
 from tensorflow.keras import datasets, models, applications, layers, losses, optimizers, metrics
 from feature_extraction import prepare, VGG
-#from RPN import RPN
+from RPN import RPN
 
 pooled_height = 1
 pooled_width = 1
+anchor_box_scales = [128, 256, 512]
+anchor_box_ratios = [[1, 1], [1, 2], [2, 1]]
+num_anchors = len(anchor_box_scales) * len(anchor_box_ratios)
 
 class ROIModel(tf.keras.Model):
     def __init__(self,labels):
         super(ROIModel, self).__init__()
-        # self.CNN = applications.MobileNetV2(input_shape=input_shape[1:], include_top=False, weights='imagenet')
-        # self.CNN.trainable = False
         self.VGG = VGG(labels)
+        self.RPN = RPN(num_anchors)
         self.roi = ROIPoolingLayer(pooled_height, pooled_width)
         self.fc1 = layers.Flatten()
         self.dense1 = layers.Dense(10, activation='softmax', name = "class_output") # number should be number of classes
@@ -26,6 +28,8 @@ class ROIModel(tf.keras.Model):
     def call(self, image):
         # image = tf.dtypes.cast(image, tf.float32)
         features = self.VGG(image)
+        classes, regression, features = self.RPN(features)
+        # convert from RPN to roi region_array
         region_array = np.asarray([[[0.0,0.0,1.0,1.0]]], dtype='float32')
         result = self.roi([features,region_array])
         flatten = self.fc1(result)
