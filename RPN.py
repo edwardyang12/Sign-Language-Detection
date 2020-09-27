@@ -23,7 +23,8 @@ class RPN(tf.keras.Model):
 def view_region(image,regions):
     row,col = image.shape[0:2]
     for region in regions:
-        cv2.rectangle(image, (row*region[0], col*region[1]), (row*region[2], col*region[3]), (0, 0, 255))
+        print(region)
+        cv2.rectangle(image, (region[0], region[1]), (region[2], region[3]), (0, 0, 255))
     cv2.imshow('img', image)
     cv2.waitKey(0)
 
@@ -52,5 +53,4 @@ if __name__ == '__main__':
     values = model.predict(test)
 
     R = roi_helpers.rpn_to_roi(values[0], values[1], C, K.image_data_format(), use_regr=True, overlap_thresh=0.7, max_boxes=300)
-    print(R)
-    #view_region(test_image,R)
+    view_region(test_image[0],R)
