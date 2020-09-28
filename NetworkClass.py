@@ -1,13 +1,17 @@
+import tensorflow as tf
+tf.disable_v2_behavior()
+import matplotlib.pyplot as plt
 from RoI import ROIPoolingLayer
 import numpy as np
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
-import tensorflow.compat.v1 as tf
-import matplotlib.pyplot as plt
-tf.disable_v2_behavior()
 from tensorflow.keras import datasets, models, applications, layers, losses, optimizers, metrics
+from tensorflow.keras import backend as K
 from feature_extraction import prepare, VGG
 from RPN import RPN
+import roi_helpers
+import config
+import losses as custom_losses
 
 pooled_height = 1
 pooled_width = 1
@@ -18,6 +22,7 @@ num_anchors = len(anchor_box_scales) * len(anchor_box_ratios)
 class ROIModel(tf.keras.Model):
     def __init__(self,labels):
         super(ROIModel, self).__init__()
+        self.C = config.Config()
         self.VGG = VGG(labels)
         self.RPN = RPN(num_anchors)
         self.roi = ROIPoolingLayer(pooled_height, pooled_width)
@@ -29,9 +34,13 @@ class ROIModel(tf.keras.Model):
         # image = tf.dtypes.cast(image, tf.float32)
         features = self.VGG(image)
         classes, regression, features = self.RPN(features)
+        classes = tf.reshape(classes[0],(1,classes.shape[1],classes.shape[2],classes.shape[3]))
+        regression = tf.reshape(regression[0],(1,regression.shape[1],regression.shape[2],regression.shape[3]))
+        regions = roi_helpers.tf_rpn_to_roi(classes, regression, self.C, K.image_data_format(), use_regr=True, overlap_thresh=0.7, max_boxes=300)
+
         # convert from RPN to roi region_array
-        region_array = np.asarray([[[0.0,0.0,1.0,1.0]]], dtype='float32')
-        result = self.roi([features,region_array])
+        # region_array = np.asarray([[[0.0,0.0,1.0,1.0]]], dtype='float32')
+        result = self.roi([features,regions])
         flatten = self.fc1(result)
         output = [self.dense1(flatten), self.dense2(flatten)]
         return output

@@ -4,7 +4,7 @@ import math
 # from . import data_generators
 import copy
 import time
-
+import tensorflow as tf
 
 def calc_iou(R, img_data, C, class_mapping):
 
@@ -294,3 +294,6 @@ def rpn_to_roi(rpn_layer, regr_layer, C, dim_ordering, use_regr=True, max_boxes=
     result = non_max_suppression_fast(all_boxes, all_probs, overlap_thresh=overlap_thresh, max_boxes=max_boxes)[0]
 
     return result
+
+def tf_rpn_to_roi(classes, regression, C, dim_ordering, use_regr=True, overlap_thresh=0.7, max_boxes=300):
+    return 0

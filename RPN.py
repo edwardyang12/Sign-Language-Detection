@@ -51,6 +51,5 @@ if __name__ == '__main__':
     test = test_image.reshape(1,160,160,3)
 
     values = model.predict(test)
-
     R = roi_helpers.rpn_to_roi(values[0], values[1], C, K.image_data_format(), use_regr=True, overlap_thresh=0.7, max_boxes=300)
     view_region(test_image[0],R)
