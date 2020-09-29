@@ -5,7 +5,7 @@ from RoI import ROIPoolingLayer
 import numpy as np
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
-from tensorflow.keras import datasets, models, applications, layers, losses, optimizers, metrics
+from tensorflow.keras import datasets, models, applications, layers, losses, optimizers, metrics, Input
 from tensorflow.keras import backend as K
 from feature_extraction import prepare, VGG
 from RPN import RPN
@@ -13,8 +13,8 @@ import roi_helpers
 import config
 import losses as custom_losses
 
-pooled_height = 1
-pooled_width = 1
+pooled_height = 3
+pooled_width = 3
 anchor_box_scales = [128, 256, 512]
 anchor_box_ratios = [[1, 1], [1, 2], [2, 1]]
 num_anchors = len(anchor_box_scales) * len(anchor_box_ratios)
@@ -33,15 +33,32 @@ class ROIModel(tf.keras.Model):
     def call(self, image):
         # image = tf.dtypes.cast(image, tf.float32)
         features = self.VGG(image)
-        classes, regression, features = self.RPN(features)
-        classes = tf.reshape(classes[0],(1,classes.shape[1],classes.shape[2],classes.shape[3]))
-        regression = tf.reshape(regression[0],(1,regression.shape[1],regression.shape[2],regression.shape[3]))
-        regions = roi_helpers.tf_rpn_to_roi(classes, regression, self.C, K.image_data_format(), use_regr=True, overlap_thresh=0.7, max_boxes=300)
+        regression = self.RPN(features)
+        #
+        regression = K.permute_dimensions(regression,(0, 3, 1, 2))
+        regression = tf.reshape(regression, [4,-1])
+        regression = K.permute_dimensions(regression,(1,0))
+        #
+        # classes = K.permute_dimensions(classes, (0, 3, 1, 2))
+        # all_probs = tf.reshape(classes, [-1])
 
-        # convert from RPN to roi region_array
-        # region_array = np.asarray([[[0.0,0.0,1.0,1.0]]], dtype='float32')
+        # batched
+        # regression = K.permute_dimensions(regression,(0, 3, 1, 2))
+        # regression = tf.reshape(regression, [36,4,-1])
+        # regression = K.permute_dimensions(regression,(2,0,1))
+        #
+        # classes = K.permute_dimensions(classes, (0, 3, 1, 2))
+        # all_probs = tf.reshape(classes, [36,-1])
+        # all_probs = K.permute_dimensions(all_probs,(1,0))
+
+        # selected = tf.image.non_max_suppression(regression, all_probs,300,0.9)
+        # regions = tf.gather(regression,selected)
+        regions = tf.expand_dims(regression,axis=0)
+
         result = self.roi([features,regions])
         flatten = self.fc1(result)
+        print(flatten)
+
         output = [self.dense1(flatten), self.dense2(flatten)]
         return output
 
@@ -53,6 +70,7 @@ if __name__ == '__main__':
 
     temp_bb_train = np.ones(train_labels.shape[0])
     temp_bb_test = np.ones(test_labels.shape[0])
+
 
     model = ROIModel(10)
 
@@ -76,26 +94,26 @@ if __name__ == '__main__':
                         validation_data=(test_images, [test_labels,temp_bb_test]))
 
     model.summary()
-    plt.plot(history.history['output_1_acc'], label='Classification')
-    plt.plot(history.history['output_2_mean_squared_error'], label ='Bounding Box Error')
-    plt.plot(history.history['val_output_1_acc'], label = 'val_accuracy')
-    plt.plot(history.history['val_output_2_mean_squared_error'], label = 'val_bounding_box')
-    plt.xlabel('Epoch')
-    plt.ylabel('Accuracy')
-    plt.ylim([0.5, 1])
-    plt.legend(loc='lower right')
-    plt.show()
-
-    test = train_images[1]
-    test = test.reshape(1, 32, 32, 3)
-    print(model.predict(x=test))
-    print(train_labels[1])
-
-    # model.build([train_images[0].shape])
-    # model.summary()
+    # plt.plot(history.history['output_1_acc'], label='Classification')
+    # plt.plot(history.history['output_2_mean_squared_error'], label ='Bounding Box Error')
+    # plt.plot(history.history['val_output_1_acc'], label = 'val_accuracy')
+    # plt.plot(history.history['val_output_2_mean_squared_error'], label = 'val_bounding_box')
+    # plt.xlabel('Epoch')
+    # plt.ylabel('Accuracy')
+    # plt.ylim([0.5, 1])
+    # plt.legend(loc='lower right')
+    # plt.show()
+    #
     # test = train_images[1]
     # test = test.reshape(1, 32, 32, 3)
-    # print(test.shape)
     # print(model.predict(x=test))
-
-    print("sucess")
+    # print(train_labels[1])
+    #
+    # # model.build([train_images[0].shape])
+    # # model.summary()
+    # # test = train_images[1]
+    # # test = test.reshape(1, 32, 32, 3)
+    # # print(test.shape)
+    # # print(model.predict(x=test))
+    #
+    # print("sucess")
