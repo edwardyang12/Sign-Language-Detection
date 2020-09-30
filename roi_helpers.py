@@ -4,7 +4,6 @@ import math
 # from . import data_generators
 import copy
 import time
-import tensorflow as tf
 
 def calc_iou(R, img_data, C, class_mapping):
 
@@ -140,8 +139,8 @@ def apply_regr_np(X, T):
         cx1 = tx * w + cx
         cy1 = ty * h + cy
 
-        w1 = np.exp(tw.astype(np.float64)) * w
-        h1 = np.exp(th.astype(np.float64)) * h
+        w1 = np.exp(tw) * w
+        h1 = np.exp(th) * h
         x1 = cx1 - w1/2.
         y1 = cy1 - h1/2.
 
@@ -223,7 +222,6 @@ def non_max_suppression_fast(boxes, probs, overlap_thresh=0.9, max_boxes=300):
     probs = probs[pick]
     return boxes, probs
 
-
 def rpn_to_roi(rpn_layer, regr_layer, C, dim_ordering, use_regr=True, max_boxes=300,overlap_thresh=0.9):
 
     regr_layer = regr_layer / C.std_scaling
@@ -294,6 +292,3 @@ def rpn_to_roi(rpn_layer, regr_layer, C, dim_ordering, use_regr=True, max_boxes=
     result = non_max_suppression_fast(all_boxes, all_probs, overlap_thresh=overlap_thresh, max_boxes=max_boxes)[0]
 
     return result
-
-def tf_rpn_to_roi(classes, regression, C, dim_ordering, use_regr=True, overlap_thresh=0.7, max_boxes=300):
-    return 0

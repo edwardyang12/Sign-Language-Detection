@@ -5,13 +5,15 @@ from RoI import ROIPoolingLayer
 import numpy as np
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
-from tensorflow.keras import datasets, models, applications, layers, losses, optimizers, metrics, Input
+from tensorflow.keras import datasets, models, applications, layers, losses, optimizers, metrics, Input, Model
 from tensorflow.keras import backend as K
 from feature_extraction import prepare, VGG
 from RPN import RPN
 import roi_helpers
 import config
 import losses as custom_losses
+from datetime import datetime
+import tensorboard
 
 pooled_height = 3
 pooled_width = 3
@@ -33,14 +35,14 @@ class ROIModel(tf.keras.Model):
     def call(self, image):
         # image = tf.dtypes.cast(image, tf.float32)
         features = self.VGG(image)
-        regression = self.RPN(features)
-        #
+        classes, regression = self.RPN(features)
+
         regression = K.permute_dimensions(regression,(0, 3, 1, 2))
         regression = tf.reshape(regression, [4,-1])
         regression = K.permute_dimensions(regression,(1,0))
-        #
-        # classes = K.permute_dimensions(classes, (0, 3, 1, 2))
-        # all_probs = tf.reshape(classes, [-1])
+
+        classes = K.permute_dimensions(classes, (0, 3, 1, 2))
+        all_probs = tf.reshape(classes, [-1])
 
         # batched
         # regression = K.permute_dimensions(regression,(0, 3, 1, 2))
@@ -51,15 +53,25 @@ class ROIModel(tf.keras.Model):
         # all_probs = tf.reshape(classes, [36,-1])
         # all_probs = K.permute_dimensions(all_probs,(1,0))
 
-        # selected = tf.image.non_max_suppression(regression, all_probs,300,0.9)
-        # regions = tf.gather(regression,selected)
-        regions = tf.expand_dims(regression,axis=0)
+        selected = tf.image.non_max_suppression(regression, all_probs,300,0.9)
+        regions = tf.gather(regression,selected)
+
+        regions = tf.expand_dims(regions,axis=0)
 
         result = self.roi([features,regions])
-        flatten = self.fc1(result)
-        print(flatten)
 
-        output = [self.dense1(flatten), self.dense2(flatten)]
+        flatten = self.fc1(result)[0]
+
+        flatten = tf.expand_dims(flatten,axis=0)
+        flatten = K.permute_dimensions(flatten,(1,0))
+
+
+        # to remove later
+        regression = tf.reshape(regression, [-1,144])
+        all_probs = tf.reshape(classes, [-1,36])
+
+        class1 = tf.expand_dims(self.dense1(flatten)[0],axis=0) # take only top class
+        output = [class1, self.dense2(flatten),regression, all_probs]
         return output
 
 if __name__ == '__main__':
@@ -68,30 +80,45 @@ if __name__ == '__main__':
     train_images, test_images = train_images / 255.0, test_images / 255.0
     #image = prepare(arg)
 
-    temp_bb_train = np.ones(train_labels.shape[0])
-    temp_bb_test = np.ones(test_labels.shape[0])
 
+    temp_bb_train = np.ones((50000,4))
+    temp_bb_test = np.ones((10000,4))
+    temp_regr_train = np.ones((50000,144))
+    temp_regr_test = np.ones((10000,144))
+    temp_class_train = np.ones((50000,36))
+    temp_class_test = np.ones((10000,36))
 
+    input_shape_img = (32,32,3)
+    img_input = Input(shape=input_shape_img)
     model = ROIModel(10)
+
+    # model = Model(inputs = img_input, outputs= roi)
 
     model.compile(
         optimizer = optimizers.RMSprop(1e-3),
         loss={
-            "output_2": losses.MeanSquaredError(),
             "output_1": losses.SparseCategoricalCrossentropy(),
+            "output_2": losses.MeanSquaredError(),
+            "output_3": losses.MeanSquaredError(),
+            "output_4": losses.MeanSquaredError(),
         },
         metrics={
-        "output_1": [
-            'accuracy'
-            #metrics.CategoricalAccuracy(),
-        ],
-        "output_2": [metrics.MeanSquaredError()],
+            "output_1":'accuracy',
+            "output_2":'accuracy',
+            "output_3":'accuracy',
+            "output_4":'accuracy',
     },
     )
+    logdir="logs/fit/" + datetime.now().strftime("%Y%m%d-%H%M%S")
+    tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logdir)
+
+    # test_image = np.array(train_images[0]).reshape(1,32,32,3)
+    # model.predict(test_image,callbacks=[tensorboard_callback])
 
     # for bounding and classifier
-    history = model.fit(x=train_images, y=(train_labels, temp_bb_train), epochs=2, batch_size = 1, verbose =1,
-                        validation_data=(test_images, [test_labels,temp_bb_test]))
+    history = model.fit(x=train_images, y=(train_labels,temp_bb_train, temp_regr_train,temp_class_train), epochs=2, batch_size = 1, verbose =1,
+                        validation_data=(test_images, [test_labels,temp_bb_test,temp_regr_test,temp_class_test]))
+
 
     model.summary()
     # plt.plot(history.history['output_1_acc'], label='Classification')
