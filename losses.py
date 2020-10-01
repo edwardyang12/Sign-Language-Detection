@@ -1,5 +1,6 @@
 from tensorflow.keras import backend as K
 from tensorflow.keras.backend import categorical_crossentropy
+from tensorflow.keras import losses
 
 if K.image_data_format() == 'channels_last':
     import tensorflow as tf
@@ -50,6 +51,6 @@ def class_loss_regr(num_classes):
         return lambda_cls_regr * K.sum(y_true[:, :, :4*num_classes] * (x_bool * (0.5 * x * x) + (1 - x_bool) * (x_abs - 0.5))) / K.sum(epsilon + y_true[:, :, :4*num_classes])
     return class_loss_regr_fixed_num
 
-
-def class_loss_cls(y_true, y_pred):
-    return lambda_cls_class * K.mean(categorical_crossentropy(y_true[0, :, :], y_pred[0, :, :]))
+class class_loss_cls(losses.Loss):
+    def call(self,y_true, y_pred):
+        return lambda_cls_class * K.mean(categorical_crossentropy(y_true[0, :, :], y_pred[0, :, :]))
